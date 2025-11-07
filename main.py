@@ -1,5 +1,6 @@
 import os
 import glob
+import random
 
 
 def get_data_normalizer(data_file_list):
@@ -10,7 +11,7 @@ def get_data_normalizer(data_file_list):
 
 def get_dataloader(configs):
     data_file_list = glob.glob(os.path.join(configs['data_dir'], '*.csv'))
-    data_file_list.sort()
+    random.shuffle(data_file_list)
 
     # 分离训练、测试集
     num_files = len(data_file_list)
@@ -24,15 +25,15 @@ def get_dataloader(configs):
 
     # 加载 dataset
     from data_factory.dataset import MyDataset # 应统一写到文件头部
-    train_dataset = MyDataset(data_file_list_train, data_normalizer, 'Train')
-    test_dataset = MyDataset(data_file_list_test, data_normalizer, 'Test')
+    train_dataset = MyDataset(data_file_list_train, data_normalizer, config['device'], 'Train')
+    test_dataset = MyDataset(data_file_list_test, data_normalizer, config['device'], 'Test')
 
     # 加载 dataloader
     from torch.utils.data import DataLoader # 应统一写到文件头部
     train_loader = DataLoader(
         train_dataset,
         batch_size=configs['batch_size'],
-        shuffle=True
+        shuffle=True,
     )
 
     test_loader = DataLoader(
@@ -89,18 +90,16 @@ if __name__ == "__main__":
         'batch_size': 32,                  # 训练时的批次大小，影响内存使用和训练速度
         
         # 模型架构配置
-        'num_layers': 6,                   # GNN 层数，决定网络的深度
+        'num_layers': 3,                   # GNN 层数，决定网络的深度
         'num_channels': 15,                # 数据通道的数量，如气温、气压、湿度等不同气象要素
-        'd_model': 512,                    # 模型隐藏层维度，决定模型的表达能力
+        'd_model': 128,                    # 模型隐藏层维度，决定模型的表达能力
         'd_coords': 2,                     # 坐标的维度，通常是(x,y)或(经度,纬度)
         'dropout_ratio': 0.1,              # dropout 率，防止模型过拟合的正则化参数
         'knn_k': 8,                        # 生成图邻接矩阵时，使用k近邻算法的超参数
         
         # 训练配置
         'num_epochs': 100,                 # 训练的总轮数，决定训练时间长短
-        'learning_rate': 1e-3,             # 学习率，控制参数更新的步长大小
-        'weight_decay': 1e-5,              # 权重衰减，L2正则化系数，防止过拟合
-        'grad_clip': 1.0,                  # 梯度裁剪阈值，防止梯度爆炸问题
+        'learning_rate': 1e-4,             # 学习率，控制参数更新的步长大小
         'device': 'cuda',                  # 训练设备，'cuda'使用GPU，'cpu'使用CPU
         
         # 保存配置

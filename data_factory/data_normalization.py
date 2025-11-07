@@ -31,7 +31,7 @@ class DataNormalizer:
         # 读取全量数据
         data_stack = []
         for file_path in file_list:
-            data_raw = pd.read_csv(file_path)
+            data_raw = pd.read_csv(file_path)[144:] # 忽略前 144 行无用数据
             data_raw = data_raw.sort_values(['DDATETIME', 'GRIDID'])
 
             # 保留特定的列

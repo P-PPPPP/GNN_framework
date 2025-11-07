@@ -17,10 +17,8 @@ def train(config, model, train_loader, test_loader, adj):
     adj = adj.to(device)
     
     # 定义损失函数和优化器
-    criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), 
-                          lr=config['learning_rate'],
-                          weight_decay=config['weight_decay'])
+    criterion = nn.L1Loss()
+    optimizer = optim.Adam(model.parameters(), lr=config['learning_rate'])
     
     # 学习率调度器
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
@@ -40,12 +38,6 @@ def train(config, model, train_loader, test_loader, adj):
         train_bar = tqdm(train_loader, desc=f'Epoch {epoch+1}/{config["num_epochs"]} [Train]')
         
         for batch_idx, (masked_data, target_data, coordinates, mask) in enumerate(train_bar):
-            # 移动数据到设备
-            masked_data = masked_data.to(device)
-            target_data = target_data.to(device)
-            coordinates = coordinates.to(device)
-            mask = mask.to(device)
-            
             # 前向传播
             optimizer.zero_grad()
             output = model(masked_data, coordinates, mask, adj)
@@ -55,10 +47,6 @@ def train(config, model, train_loader, test_loader, adj):
             
             # 反向传播
             loss.backward()
-            
-            # 梯度裁剪（可选）
-            if config['grad_clip'] > 0:
-                torch.nn.utils.clip_grad_norm_(model.parameters(), config['grad_clip'])
             
             optimizer.step()
             
@@ -76,11 +64,6 @@ def train(config, model, train_loader, test_loader, adj):
         with torch.no_grad():
             test_bar = tqdm(test_loader, desc=f'Epoch {epoch+1}/{config["num_epochs"]} [Test]')
             for masked_data, target_data, coordinates, mask in test_bar:
-                masked_data = masked_data.to(device)
-                target_data = target_data.to(device)
-                coordinates = coordinates.to(device)
-                mask = mask.to(device)
-                
                 output = model(masked_data, coordinates, mask, adj)
                 loss = criterion(output[mask,:], target_data[mask,:]) # 这里 mask 的含义：强制模型只关注被遮掩位置的数据
                 test_loss += loss.item()
