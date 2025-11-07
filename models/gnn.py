@@ -52,9 +52,9 @@ class GNNModel(nn.Module):
         # 预测器：转换至数据模式数量
         self.predictor = nn.Linear(d_model, num_channels)
 
-    def forward(self, data: torch.tensor, adj_matrix: torch.tensor):
+    def forward(self, data, coords, mask, adj_matrix):
         # 数据嵌入
-        h = self.embedding_module(data)
+        h = self.embedding_module(data, coords, mask)
         # 图网络信息汇聚
         for layer in self.layers:
             h = layer(h, adj_matrix)

@@ -23,6 +23,7 @@ def matrix_normalize_by_row(matrix):
 
 
 def calculate_graph(k: int = 8) -> torch.tensor:
+    print('正在计算邻接矩阵')
     coords_path = './dataset/coords_data.npy' # 应该写入 config
     coords_raw = np.load(coords_path)
     coords_raw = torch.tensor(coords_raw)
@@ -33,4 +34,5 @@ def calculate_graph(k: int = 8) -> torch.tensor:
     # 转换为权重矩阵并归一化
     weights_matrix = dist_to_weight(dist_matrix)
     adj_matrix = matrix_normalize_by_row(weights_matrix)
+    print('邻接矩阵计算完毕')
     return adj_matrix

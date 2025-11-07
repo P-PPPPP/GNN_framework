@@ -9,13 +9,12 @@ class Spatial_Embedding(nn.Module):
         self.data_embed = nn.Linear(d_data, d_model)
         self.spatial_embed = nn.Linear(d_coords, d_model)
 
-    def forward(self, data, position, mask):
+    def forward(self, data, coords, mask):
         # 数据 embedding
-        data_emb = self.data_embed(data)  # (batch_size, seq_len, num_nodes, d_model)
-        data_emb = torch.where(~mask.unsqueeze(1).unsqueeze(-1), data_emb, torch.zeros_like(data_emb)) # 保证 mask 位置的数据为 0 
+        data_emb = self.data_embed(data)  # (batch_size, num_nodes, d_model)
+        data_emb = torch.where(~mask.unsqueeze(-1), data_emb, torch.zeros_like(data_emb)) # 保证 mask 位置的数据为 0 
         
         # 坐标 embedding
-        spatial_emb = self.spatial_embed(position)  # (batch_size, num_nodes, d_model)
-        spatial_emb = spatial_emb.unsqueeze(1)#.repeat(1, data.size(1), 1, 1)  # (batch_size, seq_len, num_nodes, d_model)
+        spatial_emb = self.spatial_embed(coords)  # (batch_size, num_nodes, d_model)
 
         return data_emb + spatial_emb

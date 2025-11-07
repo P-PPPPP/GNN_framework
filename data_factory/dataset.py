@@ -7,12 +7,13 @@ from .data_normalization import normalize_position
 
 
 class MyDataset(Dataset):
-    def __init__(self, file_list, data_normalizer):
+    def __init__(self, file_list, data_normalizer, dataset_type):
         super().__init__()
         self.file_list = file_list
         self.data_normalizer = data_normalizer
         self.data_cache = {}
         self.coords = None
+        print(f'{dataset_type} 数据集加载完毕, 缓存的机制会让训练后期加速')
 
     def __len__(self):
         # 数据总长度 = 文件数量 * 单个文件中时间节点数
@@ -25,12 +26,12 @@ class MyDataset(Dataset):
         '''
         data_raw = self._load_data(idx=index)
         # normalize
-        data_normed = self.data_normalizer(data_raw)
-        masked_data = self._get_data(data_normed)
+        data_normed = self.data_normalizer.normalize(data_raw)
+        masked_data, mask = self._get_data(data_normed)
         target_data = self._get_target(data_normed)
         coordinates = self._get_coordinate()
 
-        return masked_data, target_data, coordinates
+        return masked_data, target_data, coordinates, mask
 
     def _load_data(self, idx):
         # 计算文件索引和批次索引
@@ -51,10 +52,11 @@ class MyDataset(Dataset):
         data_raw = data_raw.sort_values(['DDATETIME', 'GRIDID'])
 
         # 保留特定的列
-        data_array = data_raw[
+        features = [
             'T', 'MAXTOFDAY', 'SLP', 'RHSFC', 'V', 'RAIN01H', 'RAIN02H', 'RAIN03H', 'RAIN06H', 'RAIN24H', 
             'WSPD_X', 'WSPD_Y', 'WD3SMAXDF_X', 'WD3SMAXDF_Y', 'AIR_DENSITY'
-        ].values # 数据规格应写入 config
+        ] # 数据规格应写入 config
+        data_array = data_raw[features].values
     
         tensor_data = torch.from_numpy(data_array).float()
         tensor_data = tensor_data.reshape((144, 4232, 15)) # 时间节点数 空间节点数 数据模式数, # 数据规格应写入 config
@@ -74,8 +76,9 @@ class MyDataset(Dataset):
         mask = torch.zeros(num_nodes, dtype=torch.bool)
         mask[mask_indices] = True
         # 将掩码应用于数据
-        masked_data = data[:,mask,:]
-        return masked_data
+        masked_data = data.clone()
+        masked_data[mask,:] = 0.0
+        return masked_data, mask
     
     def _get_target(self, data):
         # 处理标签: 完整数据作为标签

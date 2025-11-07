@@ -24,8 +24,8 @@ def get_dataloader(configs):
 
     # 加载 dataset
     from data_factory.dataset import MyDataset # 应统一写到文件头部
-    train_dataset = MyDataset(data_file_list_train, data_normalizer)
-    test_dataset = MyDataset(data_file_list_test, data_normalizer)
+    train_dataset = MyDataset(data_file_list_train, data_normalizer, 'Train')
+    test_dataset = MyDataset(data_file_list_test, data_normalizer, 'Test')
 
     # 加载 dataloader
     from torch.utils.data import DataLoader # 应统一写到文件头部
@@ -72,22 +72,39 @@ def get_graph(config):
 
 
 def main(config):
-    train_dataset, test_dataset = get_dataloader(config)
+    train_loader, test_loader = get_dataloader(config)
     model = get_model(config)
     adj = get_graph(config)
+    
+    from training import train
+    # 训练模型
+    train_losses, test_losses = train(config, model, train_loader, test_loader, adj)
     
 
 if __name__ == "__main__":
     # 配置信息
     config = {
-        'data_dir': './dataset', # 数据加载的目录
-        'batch_size': 8,
-        'num_layers': 6, # GNN 层数
-        'num_channels': 15, # 数据模式的数量，气温、气压、湿度...
-        'd_model': 512, # 模型隐藏层维度
-        'd_coords': 2, # 坐标的维度 x, y or 经度, 维度
-        'dropout_ratio': 0.1, # dropout 率，反正模型过拟合的东西
-        'knn_k': 8 # 生成图邻接矩阵时，使用 k 邻近算法的超参数
+        # 数据配置
+        'data_dir': './dataset',           # 数据加载的目录，包含所有CSV文件
+        'batch_size': 32,                  # 训练时的批次大小，影响内存使用和训练速度
+        
+        # 模型架构配置
+        'num_layers': 6,                   # GNN 层数，决定网络的深度
+        'num_channels': 15,                # 数据通道的数量，如气温、气压、湿度等不同气象要素
+        'd_model': 512,                    # 模型隐藏层维度，决定模型的表达能力
+        'd_coords': 2,                     # 坐标的维度，通常是(x,y)或(经度,纬度)
+        'dropout_ratio': 0.1,              # dropout 率，防止模型过拟合的正则化参数
+        'knn_k': 8,                        # 生成图邻接矩阵时，使用k近邻算法的超参数
+        
+        # 训练配置
+        'num_epochs': 100,                 # 训练的总轮数，决定训练时间长短
+        'learning_rate': 1e-3,             # 学习率，控制参数更新的步长大小
+        'weight_decay': 1e-5,              # 权重衰减，L2正则化系数，防止过拟合
+        'grad_clip': 1.0,                  # 梯度裁剪阈值，防止梯度爆炸问题
+        'device': 'cuda',                  # 训练设备，'cuda'使用GPU，'cpu'使用CPU
+        
+        # 保存配置
+        'model_save_path': 'best_model.pth' # 最佳模型保存路径，用于后续加载和推理
     }
 
     main(config)

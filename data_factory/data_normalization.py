@@ -35,10 +35,11 @@ class DataNormalizer:
             data_raw = data_raw.sort_values(['DDATETIME', 'GRIDID'])
 
             # 保留特定的列
-            data_array = data_raw[
+            features = [
                 'T', 'MAXTOFDAY', 'SLP', 'RHSFC', 'V', 'RAIN01H', 'RAIN02H', 'RAIN03H', 'RAIN06H', 'RAIN24H', 
                 'WSPD_X', 'WSPD_Y', 'WD3SMAXDF_X', 'WD3SMAXDF_Y', 'AIR_DENSITY'
-            ].values # 数据规格应写入 config
+            ] # 数据规格应写入 config
+            data_array = data_raw[features].values
 
             tensor_data = torch.from_numpy(data_array).float()
             tensor_data = tensor_data.reshape((144, 4232, 15)) # 时间节点数 空间节点数 数据模式数 # 数据规格应写入 config
